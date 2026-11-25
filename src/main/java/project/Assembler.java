@@ -1,43 +1,80 @@
 package project;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class Assembler {
 
-    private final List<String> syntaxErrors = new ArrayList<>();
+    public void assemble(Path inputDateiPfad, Path outputDateiPfad) throws IOException {
+        List<Line> lines = readFile(inputDateiPfad);
 
-    public void assemble(String inputDateiPfad) throws IOException {
-        List<String> lines = readFile(inputDateiPfad);
+        SyntaxChecker syntaxChecker = new SyntaxChecker();
 
-        SyntaxChecker syntaxChecker = new SyntaxChecker(syntaxErrors);
         Compiler compiler = new Compiler();
 
-        syntaxChecker.checkSyntax(lines);
+        List<Line> trimmedLines = trimmLines(lines);
 
-        if (!syntaxErrors.isEmpty()){
+        syntaxChecker.checkSyntax(trimmedLines);
+
+        final List<String> syntaxErrors = syntaxChecker.getSyntaxErrors();
+
+        if (!syntaxErrors.isEmpty()) {
             System.out.println("Es wurden Syntaxfehler gefunden und der Code wurde nicht compiliert");
             System.out.println("Fehler:");
 
-            for (String error : syntaxErrors){
+            for (String error : syntaxErrors) {
                 System.out.println(error);
             }
             return;
         }
 
-        compiler.compile(lines);
+        List<String> compiledLines = compiler.compile(trimmedLines);
+        writeToDocument(compiledLines, outputDateiPfad);
     }
 
-    private List<String> readFile(String inputDateiPfad) throws IOException {
+    private List<Line> trimmLines(List<Line> lines) {
+        List<Line> trimmedLines = new ArrayList<>();
 
-        //TODO ErrorHandling bei nicht gefundenem File
-        try (BufferedReader reader = new BufferedReader(new FileReader(inputDateiPfad))) {
-            return reader.readAllLines();
+        for (Line line : lines) {
+            Line trimmedLine = new Line(line.zeilenNummer(), line.text().trim());
+            if (trimmedLine.text().isEmpty() || trimmedLine.text().startsWith(";")) {
+                continue;
+            }
+            trimmedLines.add(trimmedLine);
+        }
+        return trimmedLines;
+    }
+
+    private List<Line> readFile(Path inputDateiPfad) throws IOException {
+        List<Line> lines = new ArrayList<>();
+        int zeilenNummer = 0;
+        try (BufferedReader reader = new BufferedReader(new FileReader(inputDateiPfad.toFile()))) {
+            for (String line : reader.readAllLines()) {
+                lines.add(new Line(++zeilenNummer, line));
+            }
+        }
+        return lines;
+    }
+
+    private void writeToDocument(List<String> compiledLines, Path outputDateiPfad) {
+        if (Files.exists(outputDateiPfad)) {
+            System.out.println(outputDateiPfad + " ist bereits vorhanden und wird überschrieben");
+        }
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputDateiPfad.toFile()))) {
+            for (String line : compiledLines) {
+                writer.write(line);
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("ein Fehler beim Schreiben ist aufgetreten: " + e.getMessage() + "ausgelöst durch" + e.getCause());
         }
     }
-
 }

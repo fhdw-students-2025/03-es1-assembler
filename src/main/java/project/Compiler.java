@@ -1,38 +1,34 @@
 package project;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static project.Constants.OPCODES;
 
 public class Compiler {
     private final List<String> compiledLines = new ArrayList<>();
 
-    public void compile(List<String> lines){
-        for (String line : lines){
-            String trimmedLine = line.trim();
-            if (trimmedLine.isEmpty() || trimmedLine.startsWith("//")) {
-                continue;
-            }
-            compileLine(trimmedLine);
+    //TODO fallback für unerwartet falsche Syntax mit lines
+    public List<String> compile(List<Line> lines) {
+        for (Line line : lines) {
+            compileLine(line.text());
         }
-        writeToDocument();
+        return compiledLines;
     }
 
-    private void compileLine(String line){
-        //TODO compiling logik einbauen
-    }
+    private void compileLine(String line) {
+        final int HIGH_NIBLE = 0;
+        final int LOW_NIBLE = 1;
 
-    private void writeToDocument() {
-        //TODO Dateipfad anpassen
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter("platzhalter"))) {
-            for (String line : compiledLines){
-                writer.write(line);
-                writer.newLine();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        String[] parts = line.split("\\s+");
+
+        String cmd = parts[0];
+        compiledLines.add(OPCODES.get(cmd));
+
+        if (parts.length == 2) {
+            String adr = parts[1];
+            compiledLines.add(String.valueOf(adr.charAt(HIGH_NIBLE)));
+            compiledLines.add(String.valueOf(adr.charAt(LOW_NIBLE)));
         }
     }
 }
