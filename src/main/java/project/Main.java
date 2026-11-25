@@ -12,7 +12,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "assembler", mixinStandardHelpOptions = true, version="1.0", description = "Assembles a source file into machine code. Built for ES1 lecture at FHDW Hannover.")
+@Command(name = "assembler", mixinStandardHelpOptions = true, version = BuildInfo.VERSION, description = "Assembles a source file into machine code. Built for ES1 lecture at FHDW Hannover.")
 public class Main implements Callable<Integer> {
 
     private static final Set<String> YES_ANSWERS = Set.of("y", "yes");
