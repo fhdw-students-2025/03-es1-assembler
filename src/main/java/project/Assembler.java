@@ -5,7 +5,6 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,9 +58,6 @@ public class Assembler {
     }
 
     private void writeMachineCode(List<String> machineCode, Path outputPath) throws IOException {
-        if (Files.exists(outputPath)) {
-            System.err.println("Warning: " + outputPath + " already exists and will be overwritten!");
-        }
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath.toFile()))) {
             for (String word : machineCode) {
                 writer.write(word);
