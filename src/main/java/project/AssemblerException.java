@@ -7,7 +7,7 @@ public class AssemblerException extends Exception {
 
     public AssemblerException(String message, List<String> errors) {
         super(message);
-        this.errors = errors;
+        this.errors = List.copyOf(errors);
     }
 
     public List<String> getErrors() {
