@@ -14,7 +14,7 @@ public class Assembler {
 
     private static final String COMMENT_PREFIX = ";";
 
-    public void assemble(Path sourcePath, Path outputPath) throws IOException {
+    public void assemble(Path sourcePath, Path outputPath) throws IOException, AssemblerException {
         List<SourceLine> sourceLines = readSourceLines(sourcePath);
         List<SourceLine> codeLines = removeBlankAndCommentLines(sourceLines);
 
@@ -24,13 +24,7 @@ public class Assembler {
         final List<String> syntaxErrors = syntaxChecker.getErrors();
 
         if (!syntaxErrors.isEmpty()) {
-            System.out.println("Syntax errors found. The program was not assembled.");
-            System.out.println("Errors:");
-
-            for (String error : syntaxErrors) {
-                System.out.println(error);
-            }
-            return;
+            throw new AssemblerException("Syntax errors found. The program was not assembled.", syntaxErrors);
         }
 
         CodeGenerator codeGenerator = new CodeGenerator();
@@ -62,17 +56,15 @@ public class Assembler {
         return sourceLines;
     }
 
-    private void writeMachineCode(List<String> machineCode, Path outputPath) {
+    private void writeMachineCode(List<String> machineCode, Path outputPath) throws IOException {
         if (Files.exists(outputPath)) {
-            System.out.println(outputPath + " already exists and will be overwritten.");
+            System.err.println("Warning: " + outputPath + " already exists and will be overwritten!");
         }
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath.toFile()))) {
             for (String word : machineCode) {
                 writer.write(word);
                 writer.newLine();
             }
-        } catch (IOException e) {
-            System.out.println("Error while writing the output file: " + e.getMessage());
         }
     }
 }
