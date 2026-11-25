@@ -3,62 +3,72 @@ package project;
 import java.util.ArrayList;
 import java.util.List;
 
-import static project.Constants.*;
-import static project.Constants.CMDS_WITH_ADR;
+import static project.InstructionSet.MAX_ADDRESS;
+import static project.InstructionSet.MNEMONICS_WITH_OPERAND;
+import static project.InstructionSet.OPCODES;
 
 public class SyntaxChecker {
 
-    public static final String SYNTAX_ERROR_MSG_START = "Zeile ";
-    private static final int PARTS_CMD_INDEX = 0;
-    private static final int PARTS_ADR_INDEX = 1;
+    private static final String ERROR_PREFIX = "Line ";
+    private static final String WHITESPACE = "\\s+";
+    private static final int MNEMONIC_INDEX = 0;
+    private static final int OPERAND_INDEX = 1;
+    private static final int HEX_RADIX = 16;
 
+    private final List<String> errors = new ArrayList<>();
 
-    List<String> syntaxErrors = new ArrayList<>();
+    public void checkSyntax(List<SourceLine> sourceLines) {
+        for (SourceLine sourceLine : sourceLines) {
+            // Split into mnemonic and operand (\s+ matches any whitespace)
+            String[] tokens = sourceLine.text().split(WHITESPACE);
 
-    public void checkSyntax(List<Line> lines) {
-        for (Line line : lines) {
-            //Zeile in Adresse und Befehl splitten (\s+ ist eine beliebige Einrückung)
-            String[] parts = line.text().split("\\s+");
+            checkInstruction(sourceLine.lineNumber(), tokens);
 
-            checkParts(line.zeilenNummer(), parts);
-
-            if (parts.length == 2 && CMDS_WITH_ADR.contains(parts[PARTS_CMD_INDEX])) {
-                checkAdr(line.zeilenNummer(), parts[PARTS_ADR_INDEX]);
+            if (tokens.length == 2 && MNEMONICS_WITH_OPERAND.contains(tokens[MNEMONIC_INDEX])) {
+                checkAddress(sourceLine.lineNumber(), tokens[OPERAND_INDEX]);
             }
         }
     }
 
-    private void checkParts(int zeilenNummer, String[] parts) {
-        if (!OPCODES.containsKey(parts[PARTS_CMD_INDEX])) {
-            syntaxErrors.add(SYNTAX_ERROR_MSG_START + zeilenNummer + " unbekannter Befehl: " + parts[PARTS_CMD_INDEX]);
+    private void checkInstruction(int lineNumber, String[] tokens) {
+        String mnemonic = tokens[MNEMONIC_INDEX];
+
+        if (!OPCODES.containsKey(mnemonic)) {
+            addError(lineNumber, "unknown mnemonic \"" + mnemonic + "\"");
             return;
         }
 
-        if (!CMDS_WITH_ADR.contains(parts[PARTS_CMD_INDEX]) && parts.length != 1) {
-            syntaxErrors.add(SYNTAX_ERROR_MSG_START + zeilenNummer + " cmd: " + parts[PARTS_CMD_INDEX] + " erwartet keinen Operanden");
+        boolean expectsOperand = MNEMONICS_WITH_OPERAND.contains(mnemonic);
+
+        if (!expectsOperand && tokens.length != 1) {
+            addError(lineNumber, "\"" + mnemonic + "\" takes no operand");
         }
 
-        if (CMDS_WITH_ADR.contains(parts[PARTS_CMD_INDEX]) && parts.length != 2) {
-            syntaxErrors.add(SYNTAX_ERROR_MSG_START + zeilenNummer + " cmd: " + parts[PARTS_CMD_INDEX] + " braucht einen Operanden");
+        if (expectsOperand && tokens.length != 2) {
+            addError(lineNumber, "\"" + mnemonic + "\" requires an address operand");
         }
     }
 
-    private void checkAdr(int zeilenNummer, String adr) {
-        int decimalValue;
+    private void checkAddress(int lineNumber, String address) {
+        int addressValue;
 
         try {
-            decimalValue = Integer.parseInt(adr, 16); //parseInt mit zweitem Parameter setzt die Basis
+            addressValue = Integer.parseInt(address, HEX_RADIX);
         } catch (NumberFormatException e) {
-            syntaxErrors.add(SYNTAX_ERROR_MSG_START + zeilenNummer + " keine gültige Hexadresse: " + adr + " Hexziffern von 0-F z.B FF");
+            addError(lineNumber, "invalid hex address \"" + address + "\" (use hex digits 0-F, e.g. FF)");
             return;
         }
 
-        if (decimalValue < 0 || decimalValue > 255) {
-            syntaxErrors.add(SYNTAX_ERROR_MSG_START + zeilenNummer + " Adresse " + adr + " liegt außerhalb des gültigen Adressraums");
+        if (addressValue < 0 || addressValue > MAX_ADDRESS) {
+            addError(lineNumber, "address \"" + address + "\" is outside the valid range 00-FF");
         }
     }
 
-    public List<String> getSyntaxErrors() {
-        return syntaxErrors;
+    private void addError(int lineNumber, String message) {
+        errors.add(ERROR_PREFIX + lineNumber + ": " + message);
+    }
+
+    public List<String> getErrors() {
+        return errors;
     }
 }

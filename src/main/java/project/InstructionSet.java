@@ -3,7 +3,7 @@ package project;
 import java.util.Map;
 import java.util.Set;
 
-public class Constants {
+public final class InstructionSet {
 
     public static final Map<String, String> OPCODES = Map.ofEntries(
             Map.entry("AND", "0"), Map.entry("OR", "1"), Map.entry("NOT", "2"),
@@ -14,6 +14,11 @@ public class Constants {
             Map.entry("LOAD", "C"), Map.entry("SWAP", "D"),
             Map.entry("SAVE", "E"), Map.entry("RES3", "F"));
 
-    public static final Set<String> CMDS_WITH_ADR =
+    public static final Set<String> MNEMONICS_WITH_OPERAND =
             Set.of("JUMP", "JUMPC", "JUMPO", "JUMPZ", "LOAD", "SAVE");
+
+    public static final int MAX_ADDRESS = 0xFF;
+
+    private InstructionSet() {
+    }
 }

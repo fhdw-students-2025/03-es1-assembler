@@ -2,7 +2,6 @@ package project;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -13,22 +12,20 @@ import java.util.List;
 
 public class Assembler {
 
-    public void assemble(Path inputDateiPfad, Path outputDateiPfad) throws IOException {
-        List<Line> lines = readFile(inputDateiPfad);
+    private static final String COMMENT_PREFIX = ";";
+
+    public void assemble(Path sourcePath, Path outputPath) throws IOException {
+        List<SourceLine> sourceLines = readSourceLines(sourcePath);
+        List<SourceLine> codeLines = removeBlankAndCommentLines(sourceLines);
 
         SyntaxChecker syntaxChecker = new SyntaxChecker();
+        syntaxChecker.checkSyntax(codeLines);
 
-        Compiler compiler = new Compiler();
-
-        List<Line> trimmedLines = trimmLines(lines);
-
-        syntaxChecker.checkSyntax(trimmedLines);
-
-        final List<String> syntaxErrors = syntaxChecker.getSyntaxErrors();
+        final List<String> syntaxErrors = syntaxChecker.getErrors();
 
         if (!syntaxErrors.isEmpty()) {
-            System.out.println("Es wurden Syntaxfehler gefunden und der Code wurde nicht compiliert");
-            System.out.println("Fehler:");
+            System.out.println("Syntax errors found. The program was not assembled.");
+            System.out.println("Errors:");
 
             for (String error : syntaxErrors) {
                 System.out.println(error);
@@ -36,45 +33,46 @@ public class Assembler {
             return;
         }
 
-        List<String> compiledLines = compiler.compile(trimmedLines);
-        writeToDocument(compiledLines, outputDateiPfad);
+        CodeGenerator codeGenerator = new CodeGenerator();
+        List<String> machineCode = codeGenerator.generate(codeLines);
+        writeMachineCode(machineCode, outputPath);
     }
 
-    private List<Line> trimmLines(List<Line> lines) {
-        List<Line> trimmedLines = new ArrayList<>();
+    private List<SourceLine> removeBlankAndCommentLines(List<SourceLine> sourceLines) {
+        List<SourceLine> codeLines = new ArrayList<>();
 
-        for (Line line : lines) {
-            Line trimmedLine = new Line(line.zeilenNummer(), line.text().trim());
-            if (trimmedLine.text().isEmpty() || trimmedLine.text().startsWith(";")) {
+        for (SourceLine sourceLine : sourceLines) {
+            String text = sourceLine.text().trim();
+            if (text.isEmpty() || text.startsWith(COMMENT_PREFIX)) {
                 continue;
             }
-            trimmedLines.add(trimmedLine);
+            codeLines.add(new SourceLine(sourceLine.lineNumber(), text));
         }
-        return trimmedLines;
+        return codeLines;
     }
 
-    private List<Line> readFile(Path inputDateiPfad) throws IOException {
-        List<Line> lines = new ArrayList<>();
-        int zeilenNummer = 0;
-        try (BufferedReader reader = new BufferedReader(new FileReader(inputDateiPfad.toFile()))) {
-            for (String line : reader.readAllLines()) {
-                lines.add(new Line(++zeilenNummer, line));
+    private List<SourceLine> readSourceLines(Path sourcePath) throws IOException {
+        List<SourceLine> sourceLines = new ArrayList<>();
+        int lineNumber = 0;
+        try (BufferedReader reader = new BufferedReader(new FileReader(sourcePath.toFile()))) {
+            for (String text : reader.readAllLines()) {
+                sourceLines.add(new SourceLine(++lineNumber, text));
             }
         }
-        return lines;
+        return sourceLines;
     }
 
-    private void writeToDocument(List<String> compiledLines, Path outputDateiPfad) {
-        if (Files.exists(outputDateiPfad)) {
-            System.out.println(outputDateiPfad + " ist bereits vorhanden und wird überschrieben");
+    private void writeMachineCode(List<String> machineCode, Path outputPath) {
+        if (Files.exists(outputPath)) {
+            System.out.println(outputPath + " already exists and will be overwritten.");
         }
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputDateiPfad.toFile()))) {
-            for (String line : compiledLines) {
-                writer.write(line);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath.toFile()))) {
+            for (String word : machineCode) {
+                writer.write(word);
                 writer.newLine();
             }
         } catch (IOException e) {
-            System.out.println("ein Fehler beim Schreiben ist aufgetreten: " + e.getMessage() + "ausgelöst durch" + e.getCause());
+            System.out.println("Error while writing the output file: " + e.getMessage());
         }
     }
 }
