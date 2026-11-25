@@ -17,8 +17,6 @@ public final class InstructionSet {
     public static final Set<String> MNEMONICS_WITH_OPERAND =
             Set.of("JUMP", "JUMPC", "JUMPO", "JUMPZ", "LOAD", "SAVE");
 
-    public static final int MAX_ADDRESS = 0xFF;
-
     private InstructionSet() {
     }
 }

@@ -17,9 +17,11 @@ public class Assembler {
     public void assemble(Path sourcePath, Path outputPath) throws IOException, AssemblerException {
         List<SourceLine> sourceLines = readSourceLines(sourcePath);
         List<SourceLine> codeLines = removeBlankAndCommentLines(sourceLines);
+        // Split each code line once into mnemonic and operands
+        List<Instruction> instructions = codeLines.stream().map(Instruction::parse).toList();
 
         SyntaxChecker syntaxChecker = new SyntaxChecker();
-        syntaxChecker.checkSyntax(codeLines);
+        syntaxChecker.checkSyntax(instructions);
 
         final List<String> syntaxErrors = syntaxChecker.getErrors();
 
@@ -28,7 +30,7 @@ public class Assembler {
         }
 
         CodeGenerator codeGenerator = new CodeGenerator();
-        List<String> machineCode = codeGenerator.generate(codeLines);
+        List<String> machineCode = codeGenerator.generate(instructions);
         writeMachineCode(machineCode, outputPath);
     }
 

@@ -7,30 +7,28 @@ import static project.InstructionSet.OPCODES;
 
 public class CodeGenerator {
 
-    private static final String WHITESPACE = "\\s+";
-    private static final int HIGH_NIBBLE_INDEX = 0;
-    private static final int LOW_NIBBLE_INDEX = 1;
+    private static final int HEX_RADIX = 16;
 
-    private final List<String> machineCode = new ArrayList<>();
-
-    // TODO: handle unexpected invalid syntax gracefully
-    public List<String> generate(List<SourceLine> sourceLines) {
-        for (SourceLine sourceLine : sourceLines) {
-            encodeInstruction(sourceLine.text());
+    public List<String> generate(List<Instruction> instructions) {
+        List<String> machineCode = new ArrayList<>();
+        for (Instruction instruction : instructions) {
+            encodeInstruction(instruction, machineCode);
         }
         return machineCode;
     }
 
-    private void encodeInstruction(String instruction) {
-        String[] tokens = instruction.split(WHITESPACE);
+    private void encodeInstruction(Instruction instruction, List<String> machineCode) {
+        String opcode = OPCODES.get(instruction.mnemonic());
+        if (opcode == null) {
+            throw new IllegalStateException("CodeGenerator received unchecked instruction: " + instruction);
+        }
+        machineCode.add(opcode);
 
-        String mnemonic = tokens[0];
-        machineCode.add(OPCODES.get(mnemonic));
-
-        if (tokens.length == 2) {
-            String address = tokens[1];
-            machineCode.add(String.valueOf(address.charAt(HIGH_NIBBLE_INDEX)));
-            machineCode.add(String.valueOf(address.charAt(LOW_NIBBLE_INDEX)));
+        if (instruction.hasOperand()) {
+            int value = Integer.parseInt(instruction.operand(), HEX_RADIX);
+            String hex = String.format("%02X", value); // always two uppercase digits
+            machineCode.add(hex.substring(0, 1));
+            machineCode.add(hex.substring(1, 2));
         }
     }
 }
