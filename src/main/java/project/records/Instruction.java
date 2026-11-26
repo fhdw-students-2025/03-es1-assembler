@@ -1,4 +1,4 @@
-package project;
+package project.records;
 
 import java.util.Arrays;
 import java.util.List;

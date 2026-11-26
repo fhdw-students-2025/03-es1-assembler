@@ -1,11 +1,11 @@
-package project;
+package project.exceptions;
 
 import java.util.List;
 
-public class AssemblerException extends Exception {
+public class SyntaxException extends Exception {
     private final List<String> errors;
 
-    public AssemblerException(String message, List<String> errors) {
+    public SyntaxException(String message, List<String> errors) {
         super(message);
         this.errors = List.copyOf(errors);
     }

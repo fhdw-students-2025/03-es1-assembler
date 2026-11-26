@@ -1,21 +1,42 @@
 package project;
 
+import project.constants.OperandType;
+import project.records.Instruction;
+import project.records.InstructionDefinition;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 
-import static project.InstructionSet.MNEMONICS_WITH_OPERAND;
-import static project.InstructionSet.OPCODES;
+import static project.constants.InstructionSet.*;
 
 public class SyntaxChecker {
 
-    private static final String ADDRESS_PATTERN = "[0-9A-Fa-f]{2}";
+    private final Map<OperandType, Consumer<Instruction>> validateStrategies = Map.of(
+            OperandType.NONE, this::validateNoOperand,
+            OperandType.ADDRESS, this::validateAddress,
+            OperandType.VALUE, this::validateValue,
+            OperandType.OPTIONAL_ADDRESS, this::validateOptionalAddress
+    );
+
+    private static final String ADDRESS_PATTERN = "[0-9A-F]{2}";
+    private static final String VALUE_PATTERN = "[0-9A-F]";
     private static final String ERROR_PREFIX = "Line ";
+
+    private boolean isCallOpen = false;
 
     private final List<String> errors = new ArrayList<>();
 
     public void checkSyntax(List<Instruction> instructions) {
+        isCallOpen = false;
+        errors.clear();
         for (Instruction instruction : instructions) {
             checkInstruction(instruction);
+        }
+
+        if (isCallOpen){
+            errors.add("EOF reached with no closing \"call\"");
         }
     }
 
@@ -23,27 +44,74 @@ public class SyntaxChecker {
         String mnemonic = instruction.mnemonic();
         int lineNumber = instruction.lineNumber();
 
-        if (!OPCODES.containsKey(mnemonic)) {
+        InstructionDefinition definition = INSTRUCTIONS.get(mnemonic);
+
+        if (definition == null) {
             addError(lineNumber, "unknown mnemonic \"" + mnemonic + "\"");
             return;
         }
 
-        boolean expectsOperand = MNEMONICS_WITH_OPERAND.contains(mnemonic);
-        int operandCount = instruction.operands().size();
+        Consumer<Instruction> validateFunction = validateStrategies.get(definition.operandType());
+        validateFunction.accept(instruction);
+    }
 
-        if (!expectsOperand && operandCount != 0) {
-            addError(lineNumber, "\"" + mnemonic + "\" takes no operand");
-        } else if (expectsOperand && operandCount != 1) {
-            addError(lineNumber, "\"" + mnemonic + "\" requires exactly one address operand");
-        } else if (expectsOperand) {
-            checkAddress(lineNumber, instruction.operand());
+    //CALL can't be called without operand, before being called exactly once with adr operand
+    private void validateOptionalAddress(Instruction instruction) {
+        int lineNumber = instruction.lineNumber();
+        String mnemonic = instruction.mnemonic();
+
+        if (!instruction.hasOperand()) {
+            if (!isCallOpen) {
+                addError(lineNumber, "\"" + mnemonic + "\" requires one address operand");
+            } else {
+                isCallOpen = false;
+            }
+            return;
+        }
+
+        if (isCallOpen) {
+            addError(lineNumber, "\"" + mnemonic + "\" cannot be called with an address twice");
+            return;
+        }
+
+        if (!isValidAddress(instruction.operand())) {
+            addError(lineNumber,
+                    "invalid address \"" + instruction.operand() + "\" (expected two hex digits 00-FF, e.g. 0F)");
         }
     }
 
-    private void checkAddress(int lineNumber, String address) {
-        if (!address.matches(ADDRESS_PATTERN)) {
-            addError(lineNumber, "invalid address \"" + address + "\" (expected two hex digits 00-FF, e.g. 0F)");
+    private void validateValue(Instruction instruction) {
+        if (!instruction.hasOperand()) {
+            addError(instruction.lineNumber(), "\"" + instruction.mnemonic() + "\" requires exactly one value operand");
+            return;
         }
+
+        String value = instruction.operand();
+        if (!value.matches(VALUE_PATTERN)) {
+            addError(instruction.lineNumber(), "invalid value \"" + value + "\" (expected one hex digit 0-F)");
+        }
+    }
+
+    private void validateAddress(Instruction instruction) {
+        if (!instruction.hasOperand()) {
+            addError(instruction.lineNumber(), "\"" + instruction.mnemonic() + "\" requires exactly one address operand");
+            return;
+        }
+
+        String adr = instruction.operand();
+        if (!isValidAddress(adr)) {
+            addError(instruction.lineNumber(), "invalid address \"" + adr + "\" (expected two hex digits 00-FF, e.g. 0F)");
+        }
+    }
+
+    private void validateNoOperand(Instruction instruction) {
+        if (instruction.hasOperand()) {
+            addError(instruction.lineNumber(), "\"" + instruction.mnemonic() + "\" takes no operand");
+        }
+    }
+
+    private boolean isValidAddress(String adr) {
+        return adr.matches(ADDRESS_PATTERN);
     }
 
     private void addError(int lineNumber, String message) {
@@ -51,6 +119,6 @@ public class SyntaxChecker {
     }
 
     public List<String> getErrors() {
-        return errors;
+        return List.copyOf(errors);
     }
 }
