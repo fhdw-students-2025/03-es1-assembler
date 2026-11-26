@@ -78,6 +78,8 @@ public class SyntaxChecker {
             addError(lineNumber,
                     "invalid address \"" + instruction.operand() + "\" (expected two hex digits 00-FF, e.g. 0F)");
         }
+
+        isCallOpen = true;
     }
 
     private void validateValue(Instruction instruction) {
