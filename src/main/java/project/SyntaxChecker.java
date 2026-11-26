@@ -20,8 +20,8 @@ public class SyntaxChecker {
             OperandType.OPTIONAL_ADDRESS, this::validateOptionalAddress
     );
 
-    private static final String ADDRESS_PATTERN = "[0-9A-F]{2}";
-    private static final String VALUE_PATTERN = "[0-9A-F]";
+    private static final String ADDRESS_PATTERN = "[0-9A-Fa-f]{2}";
+    private static final String VALUE_PATTERN = "[0-9A-Fa-f]";
     private static final String ERROR_PREFIX = "Line ";
 
     private boolean isCallOpen = false;
@@ -35,7 +35,7 @@ public class SyntaxChecker {
             checkInstruction(instruction);
         }
 
-        if (isCallOpen){
+        if (isCallOpen) {
             errors.add("EOF reached with no closing \"call\"");
         }
     }
@@ -60,7 +60,7 @@ public class SyntaxChecker {
         int lineNumber = instruction.lineNumber();
         String mnemonic = instruction.mnemonic();
 
-        if (!instruction.hasOperand()) {
+        if (instruction.operands().size() != 1) {
             if (!isCallOpen) {
                 addError(lineNumber, "\"" + mnemonic + "\" requires one address operand");
             } else {
@@ -83,7 +83,7 @@ public class SyntaxChecker {
     }
 
     private void validateValue(Instruction instruction) {
-        if (!instruction.hasOperand()) {
+        if (instruction.operands().size() != 1) {
             addError(instruction.lineNumber(), "\"" + instruction.mnemonic() + "\" requires exactly one value operand");
             return;
         }
@@ -95,7 +95,7 @@ public class SyntaxChecker {
     }
 
     private void validateAddress(Instruction instruction) {
-        if (!instruction.hasOperand()) {
+        if (instruction.operands().size() != 1) {
             addError(instruction.lineNumber(), "\"" + instruction.mnemonic() + "\" requires exactly one address operand");
             return;
         }
