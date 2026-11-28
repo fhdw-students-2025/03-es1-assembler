@@ -1,5 +1,10 @@
 package project;
 
+import project.exceptions.GenerationException;
+import project.exceptions.SyntaxException;
+import project.records.Instruction;
+import project.records.SourceLine;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
@@ -13,7 +18,7 @@ public class Assembler {
 
     private static final String COMMENT_PREFIX = ";";
 
-    public void assemble(Path sourcePath, Path outputPath) throws IOException, AssemblerException {
+    public void assemble(Path sourcePath, Path outputPath) throws IOException, SyntaxException, GenerationException {
         List<SourceLine> sourceLines = readSourceLines(sourcePath);
         List<SourceLine> codeLines = removeBlankAndCommentLines(sourceLines);
         // Split each code line once into mnemonic and operands
@@ -25,7 +30,7 @@ public class Assembler {
         final List<String> syntaxErrors = syntaxChecker.getErrors();
 
         if (!syntaxErrors.isEmpty()) {
-            throw new AssemblerException("Syntax errors found. The program was not assembled.", syntaxErrors);
+            throw new SyntaxException("Syntax errors found. The program was not assembled.", syntaxErrors);
         }
 
         CodeGenerator codeGenerator = new CodeGenerator();

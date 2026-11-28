@@ -11,6 +11,8 @@ import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
+import project.exceptions.GenerationException;
+import project.exceptions.SyntaxException;
 
 @Command(name = "assembler", mixinStandardHelpOptions = true, version = BuildInfo.VERSION, description = "Assembles a source file into machine code. Built for ES1 lecture at FHDW Hannover.")
 public class Main implements Callable<Integer> {
@@ -23,7 +25,8 @@ public class Main implements Callable<Integer> {
     @Parameters(index = "1", description = "Output file")
     private Path outputPath;
 
-    @Override public Integer call() {
+    @Override
+    public Integer call() {
         try {
             // Checked before the overwrite prompt, so we don't ask about a run that can't succeed
             if (!Files.exists(sourcePath)) {
@@ -40,11 +43,14 @@ public class Main implements Callable<Integer> {
             }
             new Assembler().assemble(sourcePath, outputPath);
             return 0;
-        } catch (AssemblerException e) {
+        } catch (SyntaxException e) {
             System.err.println(e.getMessage());
             for (String error : e.getErrors()) {
                 System.err.println(error);
             }
+            return 1;
+        } catch (GenerationException e) {
+            System.err.println(e.getMessage());
             return 1;
         } catch (IOException e) {
             System.err.println("I/O error: " + e.getMessage());
